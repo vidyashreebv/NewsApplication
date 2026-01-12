@@ -29,6 +29,8 @@ describe('SpaceNewsPage', () => {
 
     beforeEach(() => {
         vi.clearAllMocks()
+        // Mock to return empty array by default to prevent auto-loading in tests
+        spaceNewsApi.fetchSpaceNewsArticles.mockResolvedValue([])
     })
 
     it('should render page title and description', () => {
@@ -44,27 +46,39 @@ describe('SpaceNewsPage', () => {
         ).toBeInTheDocument()
     })
 
-    it('should show empty state before loading articles', () => {
+    it('should show empty state before loading articles', async () => {
         render(<SpaceNewsPage />)
 
-        expect(screen.getByText('No Articles Loaded')).toBeInTheDocument()
+        // Wait for initial useEffect to complete
+        await waitFor(() => {
+            expect(screen.getByText('No Articles Loaded')).toBeInTheDocument()
+        })
+        
         expect(
             screen.getByText('Click "Load Articles" to fetch the latest space news')
         ).toBeInTheDocument()
     })
 
-    it('should display load articles button', () => {
+    it('should display load articles button', async () => {
         render(<SpaceNewsPage />)
 
-        const loadButton = screen.getByRole('button', { name: /load articles/i })
-        expect(loadButton).toBeInTheDocument()
+        await waitFor(() => {
+            const loadButton = screen.getByRole('button', { name: /load articles/i })
+            expect(loadButton).toBeInTheDocument()
+        })
     })
 
     it('should fetch and display articles when load button is clicked', async () => {
-        spaceNewsApi.fetchSpaceNewsArticles.mockResolvedValue(mockArticles)
-
         render(<SpaceNewsPage />)
 
+        // Wait for initial useEffect load to complete
+        await waitFor(() => {
+            expect(screen.getByRole('button', { name: /load articles/i })).toBeInTheDocument()
+        })
+
+        // Now set up mock for manual click
+        spaceNewsApi.fetchSpaceNewsArticles.mockResolvedValue(mockArticles)
+        
         const loadButton = screen.getByRole('button', { name: /load articles/i })
         fireEvent.click(loadButton)
 
@@ -78,15 +92,22 @@ describe('SpaceNewsPage', () => {
             ).toBeInTheDocument()
         })
 
-        expect(spaceNewsApi.fetchSpaceNewsArticles).toHaveBeenCalledTimes(1)
+        // Called once on mount + once on button click
+        expect(spaceNewsApi.fetchSpaceNewsArticles).toHaveBeenCalledTimes(2)
     })
 
     it('should show loading state while fetching articles', async () => {
+        render(<SpaceNewsPage />)
+
+        // Wait for initial load to complete
+        await waitFor(() => {
+            expect(screen.getByRole('button', { name: /load articles/i })).toBeInTheDocument()
+        })
+
+        // Set up delayed mock for manual click
         spaceNewsApi.fetchSpaceNewsArticles.mockImplementation(
             () => new Promise((resolve) => setTimeout(() => resolve(mockArticles), 100))
         )
-
-        render(<SpaceNewsPage />)
 
         const loadButton = screen.getByRole('button', { name: /load articles/i })
         fireEvent.click(loadButton)
@@ -100,11 +121,17 @@ describe('SpaceNewsPage', () => {
     })
 
     it('should display error message when API call fails', async () => {
+        render(<SpaceNewsPage />)
+
+        // Wait for initial load to complete
+        await waitFor(() => {
+            expect(screen.getByRole('button', { name: /load articles/i })).toBeInTheDocument()
+        })
+
+        // Set up error mock for manual click
         spaceNewsApi.fetchSpaceNewsArticles.mockRejectedValue(
             new Error('Network error')
         )
-
-        render(<SpaceNewsPage />)
 
         const loadButton = screen.getByRole('button', { name: /load articles/i })
         fireEvent.click(loadButton)
@@ -117,11 +144,17 @@ describe('SpaceNewsPage', () => {
     })
 
     it('should show search input after articles are loaded', async () => {
-        spaceNewsApi.fetchSpaceNewsArticles.mockResolvedValue(mockArticles)
-
         render(<SpaceNewsPage />)
 
+        // Wait for initial load (no articles)
+        await waitFor(() => {
+            expect(screen.getByRole('button', { name: /load articles/i })).toBeInTheDocument()
+        })
+
         expect(screen.queryByLabelText(/search/i)).not.toBeInTheDocument()
+
+        // Set up mock with articles for manual click
+        spaceNewsApi.fetchSpaceNewsArticles.mockResolvedValue(mockArticles)
 
         const loadButton = screen.getByRole('button', { name: /load articles/i })
         fireEvent.click(loadButton)
@@ -132,9 +165,15 @@ describe('SpaceNewsPage', () => {
     })
 
     it('should filter articles based on search query', async () => {
-        spaceNewsApi.fetchSpaceNewsArticles.mockResolvedValue(mockArticles)
-
         render(<SpaceNewsPage />)
+
+        // Wait for initial load
+        await waitFor(() => {
+            expect(screen.getByRole('button', { name: /load articles/i })).toBeInTheDocument()
+        })
+
+        // Set up mock with articles
+        spaceNewsApi.fetchSpaceNewsArticles.mockResolvedValue(mockArticles)
 
         const loadButton = screen.getByRole('button', { name: /load articles/i })
         fireEvent.click(loadButton)
@@ -156,9 +195,15 @@ describe('SpaceNewsPage', () => {
     })
 
     it('should show no results state when search has no matches', async () => {
-        spaceNewsApi.fetchSpaceNewsArticles.mockResolvedValue(mockArticles)
-
         render(<SpaceNewsPage />)
+
+        // Wait for initial load
+        await waitFor(() => {
+            expect(screen.getByRole('button', { name: /load articles/i })).toBeInTheDocument()
+        })
+
+        // Set up mock with articles
+        spaceNewsApi.fetchSpaceNewsArticles.mockResolvedValue(mockArticles)
 
         const loadButton = screen.getByRole('button', { name: /load articles/i })
         fireEvent.click(loadButton)
@@ -177,9 +222,15 @@ describe('SpaceNewsPage', () => {
     })
 
     it('should display correct article count', async () => {
-        spaceNewsApi.fetchSpaceNewsArticles.mockResolvedValue(mockArticles)
-
         render(<SpaceNewsPage />)
+
+        // Wait for initial load
+        await waitFor(() => {
+            expect(screen.getByRole('button', { name: /load articles/i })).toBeInTheDocument()
+        })
+
+        // Set up mock with articles
+        spaceNewsApi.fetchSpaceNewsArticles.mockResolvedValue(mockArticles)
 
         const loadButton = screen.getByRole('button', { name: /load articles/i })
         fireEvent.click(loadButton)
@@ -190,9 +241,15 @@ describe('SpaceNewsPage', () => {
     })
 
     it('should update article count when filtering', async () => {
-        spaceNewsApi.fetchSpaceNewsArticles.mockResolvedValue(mockArticles)
-
         render(<SpaceNewsPage />)
+
+        // Wait for initial load
+        await waitFor(() => {
+            expect(screen.getByRole('button', { name: /load articles/i })).toBeInTheDocument()
+        })
+
+        // Set up mock with articles
+        spaceNewsApi.fetchSpaceNewsArticles.mockResolvedValue(mockArticles)
 
         const loadButton = screen.getByRole('button', { name: /load articles/i })
         fireEvent.click(loadButton)
@@ -208,9 +265,15 @@ describe('SpaceNewsPage', () => {
     })
 
     it('should perform case-insensitive search', async () => {
-        spaceNewsApi.fetchSpaceNewsArticles.mockResolvedValue(mockArticles)
-
         render(<SpaceNewsPage />)
+
+        // Wait for initial load
+        await waitFor(() => {
+            expect(screen.getByRole('button', { name: /load articles/i })).toBeInTheDocument()
+        })
+
+        // Set up mock with articles
+        spaceNewsApi.fetchSpaceNewsArticles.mockResolvedValue(mockArticles)
 
         const loadButton = screen.getByRole('button', { name: /load articles/i })
         fireEvent.click(loadButton)

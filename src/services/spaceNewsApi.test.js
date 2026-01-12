@@ -33,7 +33,8 @@ describe('spaceNewsApi', () => {
       const articles = await fetchSpaceNewsArticles()
 
       expect(fetch).toHaveBeenCalledWith(
-        'https://api.spaceflightnewsapi.net/v4/articles/'
+        'https://api.spaceflightnewsapi.net/v4/articles/',
+        { signal: undefined }
       )
       expect(articles).toEqual(mockArticles)
       expect(articles).toHaveLength(2)
