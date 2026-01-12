@@ -86,7 +86,7 @@ export const SpaceNewsPage = () => {
             <div className={contentContainerClasses}>
                 {/* Header */}
                 <header className={headerContainerClasses}>
-                    <h1 className={titleClasses}>Spaceflight News Dashboard</h1>
+                    <h1 className={titleClasses}>🚀 Spaceflight News Dashboard</h1>
                     <p className={subtitleClasses}>
                         Discover the latest news from space exploration and science
                     </p>
