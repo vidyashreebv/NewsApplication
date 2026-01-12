@@ -23,7 +23,7 @@ describe('spaceNewsApi', () => {
         },
       ]
 
-      global.fetch = vi.fn(() =>
+      globalThis.fetch = vi.fn(() =>
         Promise.resolve({
           ok: true,
           json: () => Promise.resolve({ results: mockArticles }),
@@ -40,7 +40,7 @@ describe('spaceNewsApi', () => {
     })
 
     it('should throw error when API response is not ok', async () => {
-      global.fetch = vi.fn(() =>
+      globalThis.fetch = vi.fn(() =>
         Promise.resolve({
           ok: false,
           status: 404,
@@ -53,7 +53,7 @@ describe('spaceNewsApi', () => {
     })
 
     it('should handle network errors', async () => {
-      global.fetch = vi.fn(() =>
+      globalThis.fetch = vi.fn(() =>
         Promise.reject(new Error('Network error'))
       )
 
@@ -61,7 +61,7 @@ describe('spaceNewsApi', () => {
     })
 
     it('should return empty array when results is undefined', async () => {
-      global.fetch = vi.fn(() =>
+      globalThis.fetch = vi.fn(() =>
         Promise.resolve({
           ok: true,
           json: () => Promise.resolve({}),
