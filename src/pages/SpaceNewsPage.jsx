@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import PropTypes from 'prop-types'
 import clsx from 'clsx'
 import { ArticleCard } from '../components/ArticleCard'
@@ -53,6 +53,41 @@ export const SpaceNewsPage = () => {
     const [isLoading, setIsLoading] = useState(false)
     const [errorMessage, setErrorMessage] = useState(null)
 
+    // Fetch articles on component mount with cleanup
+    useEffect(() => {
+        const abortController = new AbortController()
+
+        const loadArticles = async () => {
+            setIsLoading(true)
+            setErrorMessage(null)
+
+            try {
+                const fetchedArticles = await fetchSpaceNewsArticles(
+                    abortController.signal
+                )
+                setArticles(fetchedArticles)
+            } catch (error) {
+                // Don't set error if the request was aborted
+                if (error.name !== 'AbortError') {
+                    setErrorMessage('Failed to load articles. Please try again.')
+                    console.error('Error loading articles:', error)
+                }
+            } finally {
+                // Don't update loading state if component was unmounted
+                if (!abortController.signal.aborted) {
+                    setIsLoading(false)
+                }
+            }
+        }
+
+        loadArticles()
+
+        // Cleanup function to abort fetch on unmount
+        return () => {
+            abortController.abort()
+        }
+    }, [])
+
     const handleClickLoadArticles = async () => {
         setIsLoading(true)
         setErrorMessage(null)
@@ -61,8 +96,10 @@ export const SpaceNewsPage = () => {
             const fetchedArticles = await fetchSpaceNewsArticles()
             setArticles(fetchedArticles)
         } catch (error) {
-            setErrorMessage('Failed to load articles. Please try again.')
-            console.error('Error loading articles:', error)
+            if (error.name !== 'AbortError') {
+                setErrorMessage('Failed to load articles. Please try again.')
+                console.error('Error loading articles:', error)
+            }
         } finally {
             setIsLoading(false)
         }
