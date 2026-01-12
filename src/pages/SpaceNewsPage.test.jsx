@@ -53,7 +53,7 @@ describe('SpaceNewsPage', () => {
         await waitFor(() => {
             expect(screen.getByText('No Articles Loaded')).toBeInTheDocument()
         })
-        
+
         expect(
             screen.getByText('Click "Load Articles" to fetch the latest space news')
         ).toBeInTheDocument()
@@ -78,7 +78,7 @@ describe('SpaceNewsPage', () => {
 
         // Now set up mock for manual click
         spaceNewsApi.fetchSpaceNewsArticles.mockResolvedValue(mockArticles)
-        
+
         const loadButton = screen.getByRole('button', { name: /load articles/i })
         fireEvent.click(loadButton)
 

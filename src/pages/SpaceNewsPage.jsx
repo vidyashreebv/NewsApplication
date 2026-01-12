@@ -56,7 +56,7 @@ export const SpaceNewsPage = () => {
     // Fetch articles on component mount with cleanup
     useEffect(() => {
         const abortController = new AbortController()
-        
+
         const loadArticles = async () => {
             setIsLoading(true)
             setErrorMessage(null)
