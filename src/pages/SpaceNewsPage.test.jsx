@@ -138,7 +138,7 @@ describe('SpaceNewsPage', () => {
 
         await waitFor(() => {
             expect(
-                screen.getByText('Failed to load articles. Please try again.')
+                screen.getByText('Network error')
             ).toBeInTheDocument()
         })
     })
