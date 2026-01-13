@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import PropTypes from 'prop-types'
 import clsx from 'clsx'
 import { ArticleCard } from '../components/ArticleCard'
 import { SearchInput } from '../components/SearchInput'
 import { fetchSpaceNewsArticles } from '../services/spaceNewsApi'
+import { useFetch } from '../hooks/useFetch'
 
 const pageContainerClasses =
     'min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50'
@@ -48,75 +49,28 @@ const emptyStateTitleClasses = 'text-2xl font-semibold text-gray-700 mb-2'
 const emptyStateTextClasses = 'text-gray-500'
 
 export const SpaceNewsPage = () => {
-    const [articles, setArticles] = useState([])
     const [searchQuery, setSearchQuery] = useState('')
-    const [isLoading, setIsLoading] = useState(false)
-    const [errorMessage, setErrorMessage] = useState(null)
 
-    // Fetch articles on component mount with cleanup
-    useEffect(() => {
-        const abortController = new AbortController()
-
-        const loadArticles = async () => {
-            setIsLoading(true)
-            setErrorMessage(null)
-
-            try {
-                const fetchedArticles = await fetchSpaceNewsArticles(
-                    abortController.signal
-                )
-                setArticles(fetchedArticles)
-            } catch (error) {
-                // Don't set error if the request was aborted
-                if (error.name !== 'AbortError') {
-                    setErrorMessage('Failed to load articles. Please try again.')
-                    console.error('Error loading articles:', error)
-                }
-            } finally {
-                // Don't update loading state if component was unmounted
-                if (!abortController.signal.aborted) {
-                    setIsLoading(false)
-                }
-            }
-        }
-
-        loadArticles()
-
-        // Cleanup function to abort fetch on unmount
-        return () => {
-            abortController.abort()
-        }
-    }, [])
-
-    const handleClickLoadArticles = async () => {
-        setIsLoading(true)
-        setErrorMessage(null)
-
-        try {
-            const fetchedArticles = await fetchSpaceNewsArticles()
-            setArticles(fetchedArticles)
-        } catch (error) {
-            if (error.name !== 'AbortError') {
-                setErrorMessage('Failed to load articles. Please try again.')
-                console.error('Error loading articles:', error)
-            }
-        } finally {
-            setIsLoading(false)
-        }
-    }
+    // Use custom hook to fetch articles with automatic cleanup
+    const {
+        data: articles,
+        isLoading,
+        error,
+        refetch,
+    } = useFetch(fetchSpaceNewsArticles, [])
 
     const handleOnChangeSearchQuery = (newSearchQuery) => {
         setSearchQuery(newSearchQuery)
     }
 
-    const filteredArticles = articles.filter((article) =>
+    const filteredArticles = articles?.filter((article) =>
         article.title.toLowerCase().includes(searchQuery.toLowerCase())
-    )
+    ) || []
 
     const shouldShowEmptyState =
-        !isLoading && articles.length === 0 && !errorMessage
+        !isLoading && (!articles || articles.length === 0) && !error
     const shouldShowNoResults =
-        !isLoading && articles.length > 0 && filteredArticles.length === 0
+        !isLoading && articles && articles.length > 0 && filteredArticles.length === 0
 
     return (
         <div className={pageContainerClasses}>
@@ -132,7 +86,7 @@ export const SpaceNewsPage = () => {
                 {/* Controls */}
                 <div className={controlsContainerClasses}>
                     <button
-                        onClick={handleClickLoadArticles}
+                        onClick={refetch}
                         disabled={isLoading}
                         className={getLoadButtonClasses(isLoading)}
                         aria-label={isLoading ? 'Loading articles' : 'Load articles'}
@@ -140,7 +94,7 @@ export const SpaceNewsPage = () => {
                         {isLoading ? 'Loading...' : 'Load Articles'}
                     </button>
 
-                    {articles.length > 0 && (
+                    {articles && articles.length > 0 && (
                         <SearchInput
                             value={searchQuery}
                             onChange={handleOnChangeSearchQuery}
@@ -150,9 +104,9 @@ export const SpaceNewsPage = () => {
                 </div>
 
                 {/* Error State */}
-                {errorMessage && (
+                {error && (
                     <div className={errorContainerClasses} role="alert">
-                        <p className={errorTextClasses}>{errorMessage}</p>
+                        <p className={errorTextClasses}>{error}</p>
                     </div>
                 )}
 
@@ -179,7 +133,7 @@ export const SpaceNewsPage = () => {
                 {/* Results Count */}
                 {!isLoading && filteredArticles.length > 0 && (
                     <p className={resultsCountClasses}>
-                        Showing {filteredArticles.length} of {articles.length} articles
+                        Showing {filteredArticles.length} of {articles?.length || 0} articles
                     </p>
                 )}
             </div>
