@@ -1,71 +1,74 @@
-import { useState, useEffect } from 'react'
+import { useCallback, useEffect, useState } from "react";
 
 /**
  * Custom hook for fetching data with loading, error, and cleanup handling
- * @param {Function} fetchFunction - The async function to fetch data
- * @param {Array} dependencies - Dependencies array for useEffect
+ *
+ * @param {Function} fetchFunction - Async function to fetch data (must be memoized with useCallback)
  * @returns {Object} - Object containing data, loading state, error, and refetch function
+ *
+ * @example
+ * const fetchData = useCallback(
+ *   (signal) => fetch('/api/data', { signal }).then(res => res.json()),
+ *   []
+ * )
+ *
+ * const { data, isLoading, error, refetch } = useFetch(fetchData)
  */
-export const useFetch = (fetchFunction, dependencies = []) => {
-    const [data, setData] = useState(null)
-    const [isLoading, setIsLoading] = useState(false)
-    const [error, setError] = useState(null)
+export const useFetch = (fetchFunction) => {
+	const [data, setData] = useState(null);
+	const [isLoading, setIsLoading] = useState(false);
+	const [error, setError] = useState(null);
 
-    useEffect(() => {
-        const abortController = new AbortController()
-        let isMounted = true
+	useEffect(() => {
+		const abortController = new AbortController();
 
-        const fetchData = async () => {
-            setIsLoading(true)
-            setError(null)
+		const fetchData = async () => {
+			setIsLoading(true);
+			setError(null);
 
-            try {
-                const result = await fetchFunction(abortController.signal)
-                
-                // Only update state if component is still mounted
-                if (isMounted && !abortController.signal.aborted) {
-                    setData(result)
-                }
-            } catch (err) {
-                // Don't set error if request was aborted
-                if (isMounted && err.name !== 'AbortError') {
-                    setError(err.message || 'An error occurred while fetching data')
-                    console.error('Fetch error:', err)
-                }
-            } finally {
-                // Only update loading state if component is still mounted
-                if (isMounted && !abortController.signal.aborted) {
-                    setIsLoading(false)
-                }
-            }
-        }
+			try {
+				const result = await fetchFunction(abortController.signal);
+				if (!abortController.signal.aborted) {
+					setData(result);
+				}
+			} catch (err) {
+				if (err.name !== "AbortError") {
+					setError(err.message || "An error occurred while fetching data");
+				}
+			} finally {
+				if (!abortController.signal.aborted) {
+					setIsLoading(false);
+				}
+			}
+		};
 
-        fetchData()
+		fetchData();
+		return () => abortController.abort();
+	}, [fetchFunction]);
 
-        // Cleanup function to abort fetch and prevent state updates on unmount
-        return () => {
-            isMounted = false
-            abortController.abort()
-        }
-    }, dependencies)
+	const refetch = useCallback(async () => {
+		const abortController = new AbortController();
 
-    // Manual refetch function
-    const refetch = async () => {
-        setIsLoading(true)
-        setError(null)
+		setIsLoading(true);
+		setError(null);
 
-        try {
-            const result = await fetchFunction()
-            setData(result)
-        } catch (err) {
-            if (err.name !== 'AbortError') {
-                setError(err.message || 'An error occurred while fetching data')
-                console.error('Fetch error:', err)
-            }
-        } finally {
-            setIsLoading(false)
-        }
-    }
+		try {
+			const result = await fetchFunction(abortController.signal);
+			if (!abortController.signal.aborted) {
+				setData(result);
+			}
+		} catch (err) {
+			if (err.name !== "AbortError") {
+				setError(err.message || "An error occurred while fetching data");
+			}
+		} finally {
+			if (!abortController.signal.aborted) {
+				setIsLoading(false);
+			}
+		}
 
-    return { data, isLoading, error, refetch }
-}
+		return () => abortController.abort();
+	}, [fetchFunction]);
+
+	return { data, isLoading, error, refetch };
+};
