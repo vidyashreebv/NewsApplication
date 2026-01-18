@@ -1,5 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { SearchInput } from "./SearchInput";
 
@@ -27,7 +28,6 @@ describe("SearchInput", () => {
 		const onChangeSpy = vi.fn();
 
 		function ControlledSearchInput({ onChangeSpy }) {
-			const { useState } = require("react");
 			const [value, setValue] = useState("");
 			const handleChange = (nextValue) => {
 				onChangeSpy(nextValue);

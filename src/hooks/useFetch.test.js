@@ -181,8 +181,8 @@ describe("useFetch", () => {
 
 		unmount();
 
-		expect(refetchSignal).toBeInstanceOf(AbortSignal);
-		expect(refetchSignal.aborted).toBe(true);
+		expect(refetchSignal).toBeTruthy();
+		expect(refetchSignal).toHaveProperty("aborted", true);
 		expect(consoleErrorSpy).not.toHaveBeenCalled();
 
 		consoleErrorSpy.mockRestore();

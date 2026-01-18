@@ -3,7 +3,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 /**
  * Custom hook for fetching data with loading, error, and cleanup handling
  *
- * @param {Function} fetchFunction - Async function to fetch data (must be memoized with useCallback)
+ * @param {(signal: AbortSignal) => Promise<unknown>} fetchFunction - Async function to fetch data.
+ * Note: memoize `fetchFunction` (e.g., with `useCallback`) to avoid refetching on every render.
  * @returns {Object} - Object containing data, loading state, error, and refetch function
  *
  * @example
@@ -22,11 +23,7 @@ export const useFetch = (fetchFunction) => {
 
 	const runFetch = useCallback(async () => {
 		// Cancel any previous request
-		try {
-			activeControllerRef.current?.abort();
-		} catch (_) {
-			/* ignore */
-		}
+		activeControllerRef.current?.abort();
 
 		const abortController = new AbortController();
 		activeControllerRef.current = abortController;
