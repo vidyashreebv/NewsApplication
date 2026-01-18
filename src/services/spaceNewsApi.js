@@ -1,4 +1,4 @@
-const API_BASE_URL = "https://api.spaceflightnewsapi.net/v4/articles/?limit=50";
+const ARTICLES_URL = "https://api.spaceflightnewsapi.net/v4/articles/?limit=50";
 
 /**
  * Fetches articles from the Spaceflight News API
@@ -8,7 +8,7 @@ const API_BASE_URL = "https://api.spaceflightnewsapi.net/v4/articles/?limit=50";
  */
 export const fetchSpaceNewsArticles = async (signal) => {
 	try {
-		const response = await fetch(API_BASE_URL, { signal });
+		const response = await fetch(ARTICLES_URL, { signal });
 
 		if (!response.ok) {
 			throw new Error(`HTTP error! status: ${response.status}`);

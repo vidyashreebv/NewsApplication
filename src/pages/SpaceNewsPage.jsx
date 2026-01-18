@@ -57,7 +57,7 @@ export const SpaceNewsPage = () => {
 		isLoading,
 		error,
 		refetch,
-	} = useFetch(fetchSpaceNewsArticles, []);
+	} = useFetch(fetchSpaceNewsArticles);
 
 	const handleOnChangeSearchQuery = (newSearchQuery) => {
 		setSearchQuery(newSearchQuery);

@@ -1,4 +1,5 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { SearchInput } from "./SearchInput";
 
@@ -22,15 +23,29 @@ describe("SearchInput", () => {
 		expect(input).toBeInTheDocument();
 	});
 
-	it("should call onChange when user types", () => {
-		const mockOnChange = vi.fn();
-		render(<SearchInput value="" onChange={mockOnChange} />);
+	it("should call onChange when user types", async () => {
+		const onChangeSpy = vi.fn();
 
-		const input = screen.getByLabelText("Search space news articles by title");
-		fireEvent.change(input, { target: { value: "NASA" } });
+		function ControlledSearchInput({ onChangeSpy }) {
+			const { useState } = require("react");
+			const [value, setValue] = useState("");
+			const handleChange = (nextValue) => {
+				onChangeSpy(nextValue);
+				setValue(nextValue);
+			};
+			return <SearchInput value={value} onChange={handleChange} />;
+		}
 
-		expect(mockOnChange).toHaveBeenCalledWith("NASA");
-		expect(mockOnChange).toHaveBeenCalledTimes(1);
+		render(<ControlledSearchInput onChangeSpy={onChangeSpy} />);
+
+		const input = screen.getByRole("textbox", {
+			name: /search space news articles by title/i,
+		});
+		const user = userEvent.setup();
+
+		await user.type(input, "NASA");
+
+		expect(onChangeSpy).toHaveBeenLastCalledWith("NASA");
 	});
 
 	it("should display custom placeholder when provided", () => {
@@ -68,15 +83,16 @@ describe("SearchInput", () => {
 		expect(label).toBeInTheDocument();
 	});
 
-	it("should handle multiple rapid changes", () => {
+	it("should handle multiple rapid changes", async () => {
 		const mockOnChange = vi.fn();
 		render(<SearchInput value="" onChange={mockOnChange} />);
 
 		const input = screen.getByLabelText("Search space news articles by title");
+		const user = userEvent.setup();
 
-		fireEvent.change(input, { target: { value: "S" } });
-		fireEvent.change(input, { target: { value: "Sp" } });
-		fireEvent.change(input, { target: { value: "Spa" } });
+		await user.type(input, "S");
+		await user.type(input, "p");
+		await user.type(input, "a");
 
 		expect(mockOnChange).toHaveBeenCalledTimes(3);
 	});

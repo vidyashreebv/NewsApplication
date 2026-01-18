@@ -158,31 +158,34 @@ describe("useFetch", () => {
 		});
 	});
 
-	it("should handle unmount during refetch without errors", async () => {
-		const mockFn = vi.fn(
-			(signal) =>
-				new Promise((resolve, reject) => {
-					signal.addEventListener("abort", () => {
-						const err = new Error("Aborted");
-						err.name = "AbortError";
-						reject(err);
-					});
-					setTimeout(() => resolve([]), 100);
-				}),
-		);
+	it("should abort an in-flight refetch on unmount", async () => {
+		let refetchSignal;
+		const consoleErrorSpy = vi
+			.spyOn(console, "error")
+			.mockImplementation(() => {});
+
+		const mockFn = vi
+			.fn()
+			.mockResolvedValueOnce([])
+			.mockImplementationOnce((signal) => {
+				refetchSignal = signal;
+				return new Promise(() => {}); // never resolves; should be aborted on unmount
+			});
 
 		const { result, unmount } = renderHook(() => useFetch(mockFn));
+		await waitFor(() => expect(result.current.isLoading).toBe(false));
 
-		await waitFor(() => {
-			expect(result.current.isLoading).toBe(false);
+		act(() => {
+			void result.current.refetch();
 		});
 
-		await act(async () => {
-			result.current.refetch();
-			unmount();
-		});
+		unmount();
 
-		expect(true).toBe(true);
+		expect(refetchSignal).toBeInstanceOf(AbortSignal);
+		expect(refetchSignal.aborted).toBe(true);
+		expect(consoleErrorSpy).not.toHaveBeenCalled();
+
+		consoleErrorSpy.mockRestore();
 	});
 
 	it("should pass abort signal to fetch function on refetch", async () => {
