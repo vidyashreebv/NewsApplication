@@ -2,74 +2,83 @@ import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { ArticleCard } from "./ArticleCard";
 
+const mockArticleData = {
+	title: "SpaceX Launches New Satellite",
+	source: "Space.com",
+	url: "https://example.com/article",
+};
+
+const mockLongTitleArticleData = {
+	title:
+		"This is a very long article title that should be truncated properly when displayed in the card component",
+	source: "Space.com",
+	url: "https://example.com/article",
+};
+
 describe("ArticleCard", () => {
-	const mockArticle = {
-		title: "SpaceX Launches New Satellite",
-		source: "Space.com",
-		url: "https://example.com/article",
+	const renderArticleCard = (props) => {
+		return render(<ArticleCard {...props} />);
 	};
 
 	it("should render article title", () => {
-		render(<ArticleCard {...mockArticle} />);
+		renderArticleCard(mockArticleData);
 
-		const title = screen.getByText("SpaceX Launches New Satellite");
+		const title = screen.getByRole("heading", {
+			name: mockArticleData.title,
+		});
 		expect(title).toBeInTheDocument();
 	});
 
 	it("should render article source", () => {
-		render(<ArticleCard {...mockArticle} />);
+		renderArticleCard(mockArticleData);
 
 		const source = screen.getByText(/Space\.com/);
 		expect(source).toBeInTheDocument();
 	});
 
-	it("should render link with correct href", () => {
-		render(<ArticleCard {...mockArticle} />);
+	it("should render link with correct href attribute", () => {
+		renderArticleCard(mockArticleData);
 
 		const link = screen.getByRole("link", { name: /read full article/i });
-		expect(link).toHaveAttribute("href", "https://example.com/article");
+		expect(link).toHaveAttribute("href", mockArticleData.url);
 	});
 
-	it("should open link in new tab", () => {
-		render(<ArticleCard {...mockArticle} />);
+	it("should open link in new tab with security attributes", () => {
+		renderArticleCard(mockArticleData);
 
 		const link = screen.getByRole("link", { name: /read full article/i });
 		expect(link).toHaveAttribute("target", "_blank");
 		expect(link).toHaveAttribute("rel", "noopener noreferrer");
 	});
 
-	it("should have proper accessibility attributes on link", () => {
-		render(<ArticleCard {...mockArticle} />);
+	it("should have proper accessibility label on link", () => {
+		renderArticleCard(mockArticleData);
 
 		const link = screen.getByLabelText(
-			"Read full article: SpaceX Launches New Satellite",
+			`Read full article: ${mockArticleData.title}`,
 		);
 		expect(link).toBeInTheDocument();
 	});
 
-	it("should render as an article element", () => {
-		const { container } = render(<ArticleCard {...mockArticle} />);
+	it("should render as an article element for semantic HTML", () => {
+		const { container } = renderArticleCard(mockArticleData);
 
 		const article = container.querySelector("article");
 		expect(article).toBeInTheDocument();
 	});
 
-	it("should handle long titles", () => {
-		const longTitleArticle = {
-			...mockArticle,
-			title:
-				"This is a very long article title that should be truncated properly when displayed in the card component",
-		};
+	it("should handle long titles with truncation", () => {
+		renderArticleCard(mockLongTitleArticleData);
 
-		render(<ArticleCard {...longTitleArticle} />);
-
-		const title = screen.getByText(longTitleArticle.title);
+		const title = screen.getByRole("heading", {
+			name: mockLongTitleArticleData.title,
+		});
 		expect(title).toBeInTheDocument();
 		expect(title).toHaveClass("line-clamp-2");
 	});
 
-	it("should display source label", () => {
-		render(<ArticleCard {...mockArticle} />);
+	it("should display source label text", () => {
+		renderArticleCard(mockArticleData);
 
 		const sourceLabel = screen.getByText("Source:");
 		expect(sourceLabel).toBeInTheDocument();

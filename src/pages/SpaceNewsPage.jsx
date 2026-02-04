@@ -6,21 +6,21 @@ import { SearchInput } from "../components/SearchInput";
 import { useFetch } from "../hooks/useFetch";
 import { fetchSpaceNewsArticles } from "../services/spaceNewsApi";
 
-const pageContainerClasses =
+const pageContainerClassName =
 	"min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50";
 
-const contentContainerClasses = "container mx-auto px-4 py-8";
+const contentContainerClassName = "container mx-auto px-4 py-8";
 
-const headerContainerClasses = "text-center mb-12";
+const headerContainerClassName = "text-center mb-12";
 
-const titleClasses = "text-4xl md:text-5xl font-bold text-gray-900 mb-4";
+const titleClassName = "text-4xl md:text-5xl font-bold text-gray-900 mb-4";
 
-const subtitleClasses = "text-lg text-gray-600";
+const subtitleClassName = "text-lg text-gray-600";
 
-const controlsContainerClasses =
+const controlsContainerClassName =
 	"flex flex-col md:flex-row gap-4 items-center justify-center mb-8";
 
-const getLoadButtonClasses = (isLoading) =>
+const getLoadButtonClassName = (isLoading) =>
 	clsx(
 		"px-6 py-3 rounded-lg font-semibold text-white",
 		"transition-all duration-200",
@@ -30,28 +30,51 @@ const getLoadButtonClasses = (isLoading) =>
 			: "bg-blue-600 hover:bg-blue-700 focus:ring-blue-500 active:scale-95",
 	);
 
-const errorContainerClasses =
+const errorContainerClassName =
 	"max-w-md mx-auto bg-red-50 border border-red-200 rounded-lg p-4 mb-8";
 
-const errorTextClasses = "text-red-800 text-center";
+const errorTextClassName = "text-red-800 text-center";
 
-const articlesGridClasses =
+const articlesGridClassName =
 	"grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6";
 
-const resultsCountClasses = "text-center text-gray-600 mt-8";
+const resultsCountClassName = "text-center text-gray-600 mt-8";
 
-const emptyStateContainerClasses = "text-center py-16";
+const emptyStateContainerClassName = "text-center py-16";
 
-const emptyStateIconClasses = "text-6xl mb-4";
+const emptyStateIconClassName = "text-6xl mb-4";
 
-const emptyStateTitleClasses = "text-2xl font-semibold text-gray-700 mb-2";
+const emptyStateTitleClassName = "text-2xl font-semibold text-gray-700 mb-2";
 
-const emptyStateTextClasses = "text-gray-500";
+const emptyStateTextClassName = "text-gray-500";
+
+const EmptyState = () => (
+	<div className={emptyStateContainerClassName}>
+		<div className={emptyStateIconClassName}>📰</div>
+		<h2 className={emptyStateTitleClassName}>No Articles Loaded</h2>
+		<p className={emptyStateTextClassName}>
+			Click "Load Articles" to fetch the latest space news
+		</p>
+	</div>
+);
+
+const NoResultsState = ({ searchQuery }) => (
+	<div className={emptyStateContainerClassName}>
+		<div className={emptyStateIconClassName}>🔍</div>
+		<h2 className={emptyStateTitleClassName}>No Results Found</h2>
+		<p className={emptyStateTextClassName}>
+			No articles match "{searchQuery}". Try a different search term.
+		</p>
+	</div>
+);
+
+NoResultsState.propTypes = {
+	searchQuery: PropTypes.string.isRequired,
+};
 
 export const SpaceNewsPage = () => {
 	const [searchQuery, setSearchQuery] = useState("");
 
-	// Use custom hook to fetch articles with automatic cleanup
 	const {
 		data: articles,
 		isLoading,
@@ -70,6 +93,7 @@ export const SpaceNewsPage = () => {
 
 	const shouldShowEmptyState =
 		!isLoading && (!articles || articles.length === 0) && !error;
+
 	const shouldShowNoResults =
 		!isLoading &&
 		articles &&
@@ -77,23 +101,23 @@ export const SpaceNewsPage = () => {
 		filteredArticles.length === 0;
 
 	return (
-		<div className={pageContainerClasses}>
-			<div className={contentContainerClasses}>
+		<div className={pageContainerClassName}>
+			<div className={contentContainerClassName}>
 				{/* Header */}
-				<header className={headerContainerClasses}>
-					<h1 className={titleClasses}>Spaceflight News Dashboard</h1>
-					<p className={subtitleClasses}>
+				<header className={headerContainerClassName}>
+					<h1 className={titleClassName}>Spaceflight News Dashboard</h1>
+					<p className={subtitleClassName}>
 						Discover the latest news from space exploration and science
 					</p>
 				</header>
 
 				{/* Controls */}
-				<div className={controlsContainerClasses}>
+				<div className={controlsContainerClassName}>
 					<button
 						type="button"
 						onClick={refetch}
 						disabled={isLoading}
-						className={getLoadButtonClasses(isLoading)}
+						className={getLoadButtonClassName(isLoading)}
 						aria-label={isLoading ? "Loading articles" : "Load articles"}
 					>
 						{isLoading ? "Loading..." : "Load Articles"}
@@ -110,8 +134,8 @@ export const SpaceNewsPage = () => {
 
 				{/* Error State */}
 				{error && (
-					<div className={errorContainerClasses} role="alert">
-						<p className={errorTextClasses}>{error}</p>
+					<div className={errorContainerClassName} role="alert">
+						<p className={errorTextClassName}>{error}</p>
 					</div>
 				)}
 
@@ -123,7 +147,7 @@ export const SpaceNewsPage = () => {
 
 				{/* Articles Grid */}
 				{!isLoading && filteredArticles.length > 0 && (
-					<div className={articlesGridClasses}>
+					<div className={articlesGridClassName}>
 						{filteredArticles.map((article) => (
 							<ArticleCard
 								key={article.id}
@@ -137,7 +161,7 @@ export const SpaceNewsPage = () => {
 
 				{/* Results Count */}
 				{!isLoading && filteredArticles.length > 0 && (
-					<p className={resultsCountClasses}>
+					<p className={resultsCountClassName}>
 						Showing {filteredArticles.length} of {articles?.length || 0}{" "}
 						articles
 					</p>
@@ -145,28 +169,4 @@ export const SpaceNewsPage = () => {
 			</div>
 		</div>
 	);
-};
-
-const EmptyState = () => (
-	<div className={emptyStateContainerClasses}>
-		<div className={emptyStateIconClasses}>📰</div>
-		<h2 className={emptyStateTitleClasses}>No Articles Loaded</h2>
-		<p className={emptyStateTextClasses}>
-			Click "Load Articles" to fetch the latest space news
-		</p>
-	</div>
-);
-
-const NoResultsState = ({ searchQuery }) => (
-	<div className={emptyStateContainerClasses}>
-		<div className={emptyStateIconClasses}>🔍</div>
-		<h2 className={emptyStateTitleClasses}>No Results Found</h2>
-		<p className={emptyStateTextClasses}>
-			No articles match "{searchQuery}". Try a different search term.
-		</p>
-	</div>
-);
-
-NoResultsState.propTypes = {
-	searchQuery: PropTypes.string.isRequired,
 };

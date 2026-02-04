@@ -6,14 +6,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
  * @param {(signal: AbortSignal) => Promise<unknown>} fetchFunction - Async function to fetch data.
  * Note: memoize `fetchFunction` (e.g., with `useCallback`) to avoid refetching on every render.
  * @returns {Object} - Object containing data, loading state, error, and refetch function
- *
- * @example
- * const fetchData = useCallback(
- *   (signal) => fetch('/api/data', { signal }).then(res => res.json()),
- *   []
- * )
- *
- * const { data, isLoading, error, refetch } = useFetch(fetchData)
  */
 export const useFetch = (fetchFunction) => {
 	const [data, setData] = useState(null);
@@ -22,7 +14,6 @@ export const useFetch = (fetchFunction) => {
 	const activeControllerRef = useRef(null);
 
 	const runFetch = useCallback(async () => {
-		// Cancel any previous request
 		activeControllerRef.current?.abort();
 
 		const abortController = new AbortController();

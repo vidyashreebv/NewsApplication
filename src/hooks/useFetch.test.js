@@ -2,16 +2,30 @@ import { act, renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useFetch } from "./useFetch";
 
+const mockArticleData = [{ id: 1, title: "Test Article" }];
+const mockArticlesData = [{ id: 1, title: "Article 1" }];
+const mockFirstFetchData = ["data1"];
+const mockSecondFetchData = ["data2"];
+
+const FETCH_ERROR_MESSAGE = "Fetch failed";
+const REFETCH_ERROR_MESSAGE = "Refetch failed";
+const ABORT_ERROR_MESSAGE = "The operation was aborted";
+const ABORTED_ERROR_MESSAGE = "Aborted";
+const DEFAULT_ERROR_MESSAGE = "An error occurred while fetching data";
+
 describe("useFetch", () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 	});
 
+	const renderUseFetchHook = (fetchFunction) => {
+		return renderHook(() => useFetch(fetchFunction));
+	};
+
 	it("should initialize with correct default states", async () => {
 		const mockFetchFunction = vi.fn().mockResolvedValue([]);
-		const { result } = renderHook(() => useFetch(mockFetchFunction));
+		const { result } = renderUseFetchHook(mockFetchFunction);
 
-		// Wait for the effect to complete
 		await waitFor(() => {
 			expect(result.current.isLoading).toBe(false);
 		});
@@ -21,56 +35,54 @@ describe("useFetch", () => {
 		expect(typeof result.current.refetch).toBe("function");
 	});
 
-	it("should fetch data successfully", async () => {
-		const mockData = [{ id: 1, title: "Test Article" }];
-		const mockFetchFunction = vi.fn().mockResolvedValue(mockData);
+	it("should fetch data successfully on mount", async () => {
+		const mockFetchFunction = vi.fn().mockResolvedValue(mockArticleData);
 
-		const { result } = renderHook(() => useFetch(mockFetchFunction));
+		const { result } = renderUseFetchHook(mockFetchFunction);
 
-		// Initially loading should be true
 		expect(result.current.isLoading).toBe(true);
 
 		await waitFor(() => {
 			expect(result.current.isLoading).toBe(false);
 		});
 
-		expect(result.current.data).toEqual(mockData);
+		expect(result.current.data).toEqual(mockArticleData);
 		expect(result.current.error).toBeNull();
 		expect(mockFetchFunction).toHaveBeenCalledTimes(1);
 	});
 
-	it("should handle fetch errors correctly", async () => {
-		const mockError = new Error("Fetch failed");
-		const mockFetchFunction = vi.fn().mockRejectedValue(mockError);
+	it("should handle fetch errors with error message", async () => {
+		const fetchError = new Error(FETCH_ERROR_MESSAGE);
+		const mockFetchFunction = vi.fn().mockRejectedValue(fetchError);
 
-		const { result } = renderHook(() => useFetch(mockFetchFunction));
+		const { result } = renderUseFetchHook(mockFetchFunction);
 
 		await waitFor(() => {
 			expect(result.current.isLoading).toBe(false);
 		});
 
 		expect(result.current.data).toBeNull();
-		expect(result.current.error).toBe("Fetch failed");
+		expect(result.current.error).toBe(FETCH_ERROR_MESSAGE);
 	});
 
 	it("should handle errors without message property", async () => {
 		const mockFetchFunction = vi.fn().mockRejectedValue("String error");
 
-		const { result } = renderHook(() => useFetch(mockFetchFunction));
+		const { result } = renderUseFetchHook(mockFetchFunction);
 
 		await waitFor(() => {
 			expect(result.current.isLoading).toBe(false);
 		});
 
-		expect(result.current.error).toBe("An error occurred while fetching data");
+		expect(result.current.error).toBe(DEFAULT_ERROR_MESSAGE);
 	});
 
-	it("should not set error for AbortError", async () => {
-		const abortError = new Error("The operation was aborted");
+	it("should not set error state when AbortError occurs", async () => {
+		const abortError = new Error(ABORT_ERROR_MESSAGE);
 		abortError.name = "AbortError";
 		const mockFetchFunction = vi.fn().mockRejectedValue(abortError);
 
-		const { result } = renderHook(() => useFetch(mockFetchFunction));
+		const { result } = renderUseFetchHook(mockFetchFunction);
 
 		await waitFor(() => {
 			expect(result.current.isLoading).toBe(false);
@@ -79,12 +91,12 @@ describe("useFetch", () => {
 		expect(result.current.error).toBeNull();
 	});
 
-	it("should cleanup on unmount and abort fetch", async () => {
+	it("should cleanup on unmount and abort ongoing fetch", async () => {
 		const mockFetchFunction = vi.fn(
 			(signal) =>
 				new Promise((resolve, reject) => {
 					signal.addEventListener("abort", () => {
-						const error = new Error("Aborted");
+						const error = new Error(ABORTED_ERROR_MESSAGE);
 						error.name = "AbortError";
 						reject(error);
 					});
@@ -92,40 +104,35 @@ describe("useFetch", () => {
 				}),
 		);
 
-		const { result, unmount } = renderHook(() => useFetch(mockFetchFunction));
+		const { result, unmount } = renderUseFetchHook(mockFetchFunction);
 
 		expect(result.current.isLoading).toBe(true);
 
-		// Unmount before fetch completes
 		unmount();
 
 		await waitFor(() => {
 			expect(mockFetchFunction).toHaveBeenCalledTimes(1);
 		});
 
-		// Verify abort signal was passed
 		expect(mockFetchFunction.mock.calls[0][0]).toBeInstanceOf(AbortSignal);
 	});
 
 	it("should handle refetch errors correctly", async () => {
-		const mockData = [{ id: 1, title: "Article 1" }];
-		const mockError = new Error("Refetch failed");
+		const refetchError = new Error(REFETCH_ERROR_MESSAGE);
 		const mockFetchFunction = vi
 			.fn()
-			.mockResolvedValueOnce(mockData)
-			.mockRejectedValueOnce(mockError);
+			.mockResolvedValueOnce(mockArticlesData)
+			.mockRejectedValueOnce(refetchError);
 
-		const { result } = renderHook(() => useFetch(mockFetchFunction));
+		const { result } = renderUseFetchHook(mockFetchFunction);
 
-		// Wait for initial fetch
 		await waitFor(() => {
 			expect(result.current.isLoading).toBe(false);
 		});
 
-		expect(result.current.data).toEqual(mockData);
+		expect(result.current.data).toEqual(mockArticlesData);
 		expect(result.current.error).toBeNull();
 
-		// Call refetch which will fail (wrap in act)
 		await act(async () => {
 			await result.current.refetch();
 		});
@@ -134,45 +141,50 @@ describe("useFetch", () => {
 			expect(result.current.isLoading).toBe(false);
 		});
 
-		expect(result.current.error).toBe("Refetch failed");
+		expect(result.current.error).toBe(REFETCH_ERROR_MESSAGE);
 	});
-
-	// Dependency-based refetching tests removed; refetch via fetch function identity covered below
 
 	it("should use updated fetchFunction when it changes", async () => {
-		const mockFn1 = vi.fn().mockResolvedValue(["data1"]);
-		const mockFn2 = vi.fn().mockResolvedValue(["data2"]);
+		const mockFirstFetchFunction = vi
+			.fn()
+			.mockResolvedValue(mockFirstFetchData);
+		const mockSecondFetchFunction = vi
+			.fn()
+			.mockResolvedValue(mockSecondFetchData);
 
-		const { result, rerender } = renderHook(({ fn }) => useFetch(fn), {
-			initialProps: { fn: mockFn1 },
-		});
+		const { result, rerender } = renderHook(
+			({ fetchFunction }) => useFetch(fetchFunction),
+			{
+				initialProps: { fetchFunction: mockFirstFetchFunction },
+			},
+		);
 
 		await waitFor(() => {
-			expect(result.current.data).toEqual(["data1"]);
+			expect(result.current.data).toEqual(mockFirstFetchData);
 		});
 
-		rerender({ fn: mockFn2 });
+		rerender({ fetchFunction: mockSecondFetchFunction });
 
 		await waitFor(() => {
-			expect(result.current.data).toEqual(["data2"]);
+			expect(result.current.data).toEqual(mockSecondFetchData);
 		});
 	});
 
-	it("should abort an in-flight refetch on unmount", async () => {
-		let refetchSignal;
+	it("should abort in-flight refetch on unmount", async () => {
+		let refetchAbortSignal;
 		const consoleErrorSpy = vi
 			.spyOn(console, "error")
 			.mockImplementation(() => {});
 
-		const mockFn = vi
+		const mockFetchFunction = vi
 			.fn()
 			.mockResolvedValueOnce([])
 			.mockImplementationOnce((signal) => {
-				refetchSignal = signal;
-				return new Promise(() => {}); // never resolves; should be aborted on unmount
+				refetchAbortSignal = signal;
+				return new Promise(() => {});
 			});
 
-		const { result, unmount } = renderHook(() => useFetch(mockFn));
+		const { result, unmount } = renderUseFetchHook(mockFetchFunction);
 		await waitFor(() => expect(result.current.isLoading).toBe(false));
 
 		act(() => {
@@ -181,17 +193,17 @@ describe("useFetch", () => {
 
 		unmount();
 
-		expect(refetchSignal).toBeTruthy();
-		expect(refetchSignal).toHaveProperty("aborted", true);
+		expect(refetchAbortSignal).toBeTruthy();
+		expect(refetchAbortSignal).toHaveProperty("aborted", true);
 		expect(consoleErrorSpy).not.toHaveBeenCalled();
 
 		consoleErrorSpy.mockRestore();
 	});
 
 	it("should pass abort signal to fetch function on refetch", async () => {
-		const mockFn = vi.fn().mockResolvedValue([]);
+		const mockFetchFunction = vi.fn().mockResolvedValue([]);
 
-		const { result } = renderHook(() => useFetch(mockFn));
+		const { result } = renderUseFetchHook(mockFetchFunction);
 
 		await waitFor(() => {
 			expect(result.current.isLoading).toBe(false);
@@ -201,7 +213,7 @@ describe("useFetch", () => {
 			await result.current.refetch();
 		});
 
-		expect(mockFn).toHaveBeenCalledTimes(2);
-		expect(mockFn.mock.calls[1][0]).toBeInstanceOf(AbortSignal);
+		expect(mockFetchFunction).toHaveBeenCalledTimes(2);
+		expect(mockFetchFunction.mock.calls[1][0]).toBeInstanceOf(AbortSignal);
 	});
 });

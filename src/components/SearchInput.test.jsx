@@ -1,13 +1,38 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useState } from "react";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { SearchInput } from "./SearchInput";
 
+const mockOnChange = vi.fn();
+
+const defaultSearchInputProps = {
+	value: "",
+	onChange: mockOnChange,
+};
+
+const SEARCH_VALUE = "SpaceX";
+const NASA_SEARCH_VALUE = "NASA";
+const CUSTOM_PLACEHOLDER_TEXT = "Find articles...";
+const DEFAULT_PLACEHOLDER_TEXT = "Search by title...";
+const SEARCH_INPUT_ID = "search-articles";
+
 describe("SearchInput", () => {
+	let user;
+
+	beforeEach(() => {
+		vi.clearAllMocks();
+		user = userEvent.setup();
+	});
+
+	const renderSearchInput = (additionalProps = {}) => {
+		return render(
+			<SearchInput {...defaultSearchInputProps} {...additionalProps} />,
+		);
+	};
+
 	it("should render search input with label", () => {
-		const mockOnChange = vi.fn();
-		render(<SearchInput value="" onChange={mockOnChange} />);
+		renderSearchInput();
 
 		const label = screen.getByText("Search Articles");
 		const input = screen.getByLabelText("Search space news articles by title");
@@ -17,83 +42,73 @@ describe("SearchInput", () => {
 	});
 
 	it("should display the provided value", () => {
-		const mockOnChange = vi.fn();
-		render(<SearchInput value="SpaceX" onChange={mockOnChange} />);
+		renderSearchInput({ value: SEARCH_VALUE });
 
-		const input = screen.getByDisplayValue("SpaceX");
+		const input = screen.getByDisplayValue(SEARCH_VALUE);
 		expect(input).toBeInTheDocument();
 	});
 
 	it("should call onChange when user types", async () => {
-		const onChangeSpy = vi.fn();
+		const onChangeHandlerSpy = vi.fn();
 
-		function ControlledSearchInput({ onChangeSpy }) {
-			const [value, setValue] = useState("");
-			const handleChange = (nextValue) => {
-				onChangeSpy(nextValue);
-				setValue(nextValue);
+		function ControlledSearchInput({ onChangeHandlerSpy }) {
+			const [searchValue, setSearchValue] = useState("");
+			const handleOnChangeSearchInput = (nextValue) => {
+				onChangeHandlerSpy(nextValue);
+				setSearchValue(nextValue);
 			};
-			return <SearchInput value={value} onChange={handleChange} />;
+			return (
+				<SearchInput value={searchValue} onChange={handleOnChangeSearchInput} />
+			);
 		}
 
-		render(<ControlledSearchInput onChangeSpy={onChangeSpy} />);
+		render(<ControlledSearchInput onChangeHandlerSpy={onChangeHandlerSpy} />);
 
 		const input = screen.getByRole("textbox", {
 			name: /search space news articles by title/i,
 		});
-		const user = userEvent.setup();
 
-		await user.type(input, "NASA");
+		await user.type(input, NASA_SEARCH_VALUE);
 
-		expect(onChangeSpy).toHaveBeenLastCalledWith("NASA");
+		expect(onChangeHandlerSpy).toHaveBeenLastCalledWith(NASA_SEARCH_VALUE);
 	});
 
 	it("should display custom placeholder when provided", () => {
-		const mockOnChange = vi.fn();
-		render(
-			<SearchInput
-				value=""
-				onChange={mockOnChange}
-				placeholder="Find articles..."
-			/>,
-		);
+		renderSearchInput({ placeholder: CUSTOM_PLACEHOLDER_TEXT });
 
-		const input = screen.getByPlaceholderText("Find articles...");
+		const input = screen.getByPlaceholderText(CUSTOM_PLACEHOLDER_TEXT);
 		expect(input).toBeInTheDocument();
 	});
 
 	it("should display default placeholder when not provided", () => {
-		const mockOnChange = vi.fn();
-		render(<SearchInput value="" onChange={mockOnChange} />);
+		renderSearchInput();
 
-		const input = screen.getByPlaceholderText("Search by title...");
+		const input = screen.getByPlaceholderText(DEFAULT_PLACEHOLDER_TEXT);
 		expect(input).toBeInTheDocument();
 	});
 
 	it("should have proper accessibility attributes", () => {
-		const mockOnChange = vi.fn();
-		render(<SearchInput value="" onChange={mockOnChange} />);
+		renderSearchInput();
 
 		const input = screen.getByRole("textbox", {
 			name: /search space news articles by title/i,
 		});
 		const label = screen.getByLabelText("Search space news articles by title");
 
-		expect(input).toHaveAttribute("id", "search-articles");
+		expect(input).toHaveAttribute("id", SEARCH_INPUT_ID);
 		expect(label).toBeInTheDocument();
 	});
 
 	it("should handle multiple rapid changes", async () => {
-		const mockOnChange = vi.fn();
-		render(<SearchInput value="" onChange={mockOnChange} />);
+		const onChangeHandlerMock = vi.fn();
+		renderSearchInput({ onChange: onChangeHandlerMock });
 
 		const input = screen.getByLabelText("Search space news articles by title");
-		const user = userEvent.setup();
 
 		await user.type(input, "S");
 		await user.type(input, "p");
 		await user.type(input, "a");
 
-		expect(mockOnChange).toHaveBeenCalledTimes(3);
+		expect(onChangeHandlerMock).toHaveBeenCalledTimes(3);
 	});
 });

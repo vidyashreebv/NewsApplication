@@ -6,320 +6,312 @@ import { SpaceNewsPage } from "./SpaceNewsPage";
 
 vi.mock("../services/spaceNewsApi");
 
+const mockSpaceArticlesData = [
+	{
+		id: 1,
+		title: "SpaceX Launches Starship",
+		news_site: "Space.com",
+		url: "https://example.com/spacex",
+	},
+	{
+		id: 2,
+		title: "NASA Mars Rover Discovery",
+		news_site: "NASA.gov",
+		url: "https://example.com/nasa",
+	},
+	{
+		id: 3,
+		title: "SpaceX Dragon Returns to Earth",
+		news_site: "SpaceNews",
+		url: "https://example.com/dragon",
+	},
+];
+
+const PAGE_TITLE_TEXT = "Spaceflight News Dashboard";
+const PAGE_DESCRIPTION_TEXT =
+	"Discover the latest news from space exploration and science";
+const EMPTY_STATE_TITLE_TEXT = "No Articles Loaded";
+const EMPTY_STATE_MESSAGE_TEXT =
+	'Click "Load Articles" to fetch the latest space news';
+const LOAD_BUTTON_LABEL = /load articles/i;
+const LOADING_BUTTON_LABEL = /loading articles/i;
+const LOADING_TEXT = "Loading...";
+const NETWORK_ERROR_MESSAGE = "Network error";
+const NO_RESULTS_TITLE_TEXT = "No Results Found";
+const SEARCH_INPUT_LABEL = /search/i;
+const SPACEX_SEARCH_QUERY = "SpaceX";
+const NASA_SEARCH_QUERY = "NASA";
+const PLUTO_SEARCH_QUERY = "Pluto";
+const SPACEX_LOWERCASE_QUERY = "spacex";
+
+const THREE_OF_THREE_ARTICLES_TEXT = "Showing 3 of 3 articles";
+const ONE_OF_THREE_ARTICLES_TEXT = "Showing 1 of 3 articles";
+
+const API_DELAY_TIME = 100;
+
 describe("SpaceNewsPage", () => {
-	const mockArticles = [
-		{
-			id: 1,
-			title: "SpaceX Launches Starship",
-			news_site: "Space.com",
-			url: "https://example.com/spacex",
-		},
-		{
-			id: 2,
-			title: "NASA Mars Rover Discovery",
-			news_site: "NASA.gov",
-			url: "https://example.com/nasa",
-		},
-		{
-			id: 3,
-			title: "SpaceX Dragon Returns to Earth",
-			news_site: "SpaceNews",
-			url: "https://example.com/dragon",
-		},
-	];
+	let user;
 
 	beforeEach(() => {
 		vi.clearAllMocks();
-		// Mock to return empty array by default to prevent auto-loading in tests
+		user = userEvent.setup();
 		spaceNewsApi.fetchSpaceNewsArticles.mockResolvedValue([]);
 	});
 
-	it("should render page title and description", async () => {
-		render(<SpaceNewsPage />);
+	const renderSpaceNewsPage = () => {
+		return render(<SpaceNewsPage />);
+	};
 
-		// Wait for effect to settle to avoid act warnings
+	const waitForLoadButton = async () => {
 		await waitFor(() => {
 			expect(
-				screen.getByRole("button", { name: /load articles/i }),
+				screen.getByRole("button", { name: LOAD_BUTTON_LABEL }),
 			).toBeInTheDocument();
 		});
+	};
 
-		expect(screen.getByText("Spaceflight News Dashboard")).toBeInTheDocument();
-		expect(
-			screen.getByText(
-				"Discover the latest news from space exploration and science",
-			),
-		).toBeInTheDocument();
+	const clickLoadButton = async () => {
+		const loadButton = screen.getByRole("button", { name: LOAD_BUTTON_LABEL });
+		await user.click(loadButton);
+	};
+
+	it("should render page title and description", async () => {
+		renderSpaceNewsPage();
+
+		await waitForLoadButton();
+
+		expect(screen.getByText(PAGE_TITLE_TEXT)).toBeInTheDocument();
+		expect(screen.getByText(PAGE_DESCRIPTION_TEXT)).toBeInTheDocument();
 	});
 
 	it("should show empty state before loading articles", async () => {
-		render(<SpaceNewsPage />);
+		renderSpaceNewsPage();
 
-		// Wait for initial useEffect to complete
 		await waitFor(() => {
-			expect(screen.getByText("No Articles Loaded")).toBeInTheDocument();
+			expect(screen.getByText(EMPTY_STATE_TITLE_TEXT)).toBeInTheDocument();
 		});
 
-		expect(
-			screen.getByText('Click "Load Articles" to fetch the latest space news'),
-		).toBeInTheDocument();
+		expect(screen.getByText(EMPTY_STATE_MESSAGE_TEXT)).toBeInTheDocument();
 	});
 
 	it("should display load articles button", async () => {
-		render(<SpaceNewsPage />);
+		renderSpaceNewsPage();
 
-		await waitFor(() => {
-			const loadButton = screen.getByRole("button", { name: /load articles/i });
-			expect(loadButton).toBeInTheDocument();
-		});
+		await waitForLoadButton();
 	});
 
 	it("should fetch and display articles when load button is clicked", async () => {
-		render(<SpaceNewsPage />);
+		renderSpaceNewsPage();
 
-		// Wait for initial useEffect load to complete
+		await waitForLoadButton();
+
+		spaceNewsApi.fetchSpaceNewsArticles.mockResolvedValue(
+			mockSpaceArticlesData,
+		);
+
+		await clickLoadButton();
+
 		await waitFor(() => {
 			expect(
-				screen.getByRole("button", { name: /load articles/i }),
+				screen.getByText(mockSpaceArticlesData[0].title),
+			).toBeInTheDocument();
+			expect(
+				screen.getByText(mockSpaceArticlesData[1].title),
+			).toBeInTheDocument();
+			expect(
+				screen.getByText(mockSpaceArticlesData[2].title),
 			).toBeInTheDocument();
 		});
 
-		// Now set up mock for manual click
-		spaceNewsApi.fetchSpaceNewsArticles.mockResolvedValue(mockArticles);
-
-		const loadButton = screen.getByRole("button", { name: /load articles/i });
-		const user = userEvent.setup();
-		await user.click(loadButton);
-
-		await waitFor(() => {
-			expect(screen.getByText("SpaceX Launches Starship")).toBeInTheDocument();
-			expect(screen.getByText("NASA Mars Rover Discovery")).toBeInTheDocument();
-			expect(
-				screen.getByText("SpaceX Dragon Returns to Earth"),
-			).toBeInTheDocument();
-		});
-
-		// Called once on mount + once on button click
 		expect(spaceNewsApi.fetchSpaceNewsArticles).toHaveBeenCalledTimes(2);
 	});
 
 	it("should show loading state while fetching articles", async () => {
-		render(<SpaceNewsPage />);
+		renderSpaceNewsPage();
 
-		// Wait for initial load to complete
-		await waitFor(() => {
-			expect(
-				screen.getByRole("button", { name: /load articles/i }),
-			).toBeInTheDocument();
-		});
+		await waitForLoadButton();
 
-		// Set up delayed mock for manual click
 		spaceNewsApi.fetchSpaceNewsArticles.mockImplementation(
 			() =>
-				new Promise((resolve) => setTimeout(() => resolve(mockArticles), 100)),
+				new Promise((resolve) =>
+					setTimeout(() => resolve(mockSpaceArticlesData), API_DELAY_TIME),
+				),
 		);
 
-		const loadButton = screen.getByRole("button", { name: /load articles/i });
-		const user = userEvent.setup();
-		await user.click(loadButton);
+		await clickLoadButton();
 
-		expect(screen.getByText("Loading...")).toBeInTheDocument();
-		expect(loadButton).toBeDisabled();
+		expect(screen.getByText(LOADING_TEXT)).toBeInTheDocument();
+		const loadingButton = screen.getByRole("button", {
+			name: LOADING_BUTTON_LABEL,
+		});
+		expect(loadingButton).toBeDisabled();
 
 		await waitFor(() => {
-			expect(screen.getByText("SpaceX Launches Starship")).toBeInTheDocument();
+			expect(
+				screen.getByText(mockSpaceArticlesData[0].title),
+			).toBeInTheDocument();
 		});
 	});
 
 	it("should display error message when API call fails", async () => {
-		render(<SpaceNewsPage />);
+		renderSpaceNewsPage();
 
-		// Wait for initial load to complete
-		await waitFor(() => {
-			expect(
-				screen.getByRole("button", { name: /load articles/i }),
-			).toBeInTheDocument();
-		});
+		await waitForLoadButton();
 
-		// Set up error mock for manual click
 		spaceNewsApi.fetchSpaceNewsArticles.mockRejectedValue(
-			new Error("Network error"),
+			new Error(NETWORK_ERROR_MESSAGE),
 		);
 
-		const loadButton = screen.getByRole("button", { name: /load articles/i });
-		const user = userEvent.setup();
-		await user.click(loadButton);
+		await clickLoadButton();
 
 		await waitFor(() => {
-			expect(screen.getByText("Network error")).toBeInTheDocument();
+			expect(screen.getByText(NETWORK_ERROR_MESSAGE)).toBeInTheDocument();
 		});
 	});
 
 	it("should show search input after articles are loaded", async () => {
-		render(<SpaceNewsPage />);
+		renderSpaceNewsPage();
 
-		// Wait for initial load (no articles)
-		await waitFor(() => {
-			expect(
-				screen.getByRole("button", { name: /load articles/i }),
-			).toBeInTheDocument();
-		});
+		await waitForLoadButton();
 
-		expect(screen.queryByLabelText(/search/i)).not.toBeInTheDocument();
+		expect(screen.queryByLabelText(SEARCH_INPUT_LABEL)).not.toBeInTheDocument();
 
-		// Set up mock with articles for manual click
-		spaceNewsApi.fetchSpaceNewsArticles.mockResolvedValue(mockArticles);
+		spaceNewsApi.fetchSpaceNewsArticles.mockResolvedValue(
+			mockSpaceArticlesData,
+		);
 
-		const loadButton = screen.getByRole("button", { name: /load articles/i });
-		const user = userEvent.setup();
-		await user.click(loadButton);
+		await clickLoadButton();
 
 		await waitFor(() => {
-			expect(screen.getByLabelText(/search/i)).toBeInTheDocument();
+			expect(screen.getByLabelText(SEARCH_INPUT_LABEL)).toBeInTheDocument();
 		});
 	});
 
 	it("should filter articles based on search query", async () => {
-		render(<SpaceNewsPage />);
+		renderSpaceNewsPage();
 
-		// Wait for initial load
+		await waitForLoadButton();
+
+		spaceNewsApi.fetchSpaceNewsArticles.mockResolvedValue(
+			mockSpaceArticlesData,
+		);
+
+		await clickLoadButton();
+
 		await waitFor(() => {
 			expect(
-				screen.getByRole("button", { name: /load articles/i }),
+				screen.getByText(mockSpaceArticlesData[0].title),
 			).toBeInTheDocument();
 		});
 
-		// Set up mock with articles
-		spaceNewsApi.fetchSpaceNewsArticles.mockResolvedValue(mockArticles);
+		const searchInput = screen.getByLabelText(SEARCH_INPUT_LABEL);
+		await user.type(searchInput, SPACEX_SEARCH_QUERY);
 
-		const loadButton = screen.getByRole("button", { name: /load articles/i });
-		const user = userEvent.setup();
-		await user.click(loadButton);
-
-		await waitFor(() => {
-			expect(screen.getByText("SpaceX Launches Starship")).toBeInTheDocument();
-		});
-
-		const searchInput = screen.getByLabelText(/search/i);
-		await user.type(searchInput, "SpaceX");
-
-		expect(screen.getByText("SpaceX Launches Starship")).toBeInTheDocument();
 		expect(
-			screen.getByText("SpaceX Dragon Returns to Earth"),
+			screen.getByText(mockSpaceArticlesData[0].title),
 		).toBeInTheDocument();
 		expect(
-			screen.queryByText("NASA Mars Rover Discovery"),
+			screen.getByText(mockSpaceArticlesData[2].title),
+		).toBeInTheDocument();
+		expect(
+			screen.queryByText(mockSpaceArticlesData[1].title),
 		).not.toBeInTheDocument();
 	});
 
 	it("should show no results state when search has no matches", async () => {
-		render(<SpaceNewsPage />);
+		renderSpaceNewsPage();
 
-		// Wait for initial load
+		await waitForLoadButton();
+
+		spaceNewsApi.fetchSpaceNewsArticles.mockResolvedValue(
+			mockSpaceArticlesData,
+		);
+
+		await clickLoadButton();
+
 		await waitFor(() => {
 			expect(
-				screen.getByRole("button", { name: /load articles/i }),
+				screen.getByText(mockSpaceArticlesData[0].title),
 			).toBeInTheDocument();
 		});
 
-		// Set up mock with articles
-		spaceNewsApi.fetchSpaceNewsArticles.mockResolvedValue(mockArticles);
+		const searchInput = screen.getByLabelText(SEARCH_INPUT_LABEL);
+		await user.type(searchInput, PLUTO_SEARCH_QUERY);
 
-		const loadButton = screen.getByRole("button", { name: /load articles/i });
-		const user = userEvent.setup();
-		await user.click(loadButton);
-
-		await waitFor(() => {
-			expect(screen.getByText("SpaceX Launches Starship")).toBeInTheDocument();
-		});
-
-		const searchInput = screen.getByLabelText(/search/i);
-		await user.type(searchInput, "Pluto");
-
-		expect(screen.getByText("No Results Found")).toBeInTheDocument();
+		expect(screen.getByText(NO_RESULTS_TITLE_TEXT)).toBeInTheDocument();
 		expect(
 			screen.getByText(
-				'No articles match "Pluto". Try a different search term.',
+				`No articles match "${PLUTO_SEARCH_QUERY}". Try a different search term.`,
 			),
 		).toBeInTheDocument();
 	});
 
 	it("should display correct article count", async () => {
-		render(<SpaceNewsPage />);
+		renderSpaceNewsPage();
 
-		// Wait for initial load
+		await waitForLoadButton();
+
+		spaceNewsApi.fetchSpaceNewsArticles.mockResolvedValue(
+			mockSpaceArticlesData,
+		);
+
+		await clickLoadButton();
+
 		await waitFor(() => {
 			expect(
-				screen.getByRole("button", { name: /load articles/i }),
+				screen.getByText(THREE_OF_THREE_ARTICLES_TEXT),
 			).toBeInTheDocument();
-		});
-
-		// Set up mock with articles
-		spaceNewsApi.fetchSpaceNewsArticles.mockResolvedValue(mockArticles);
-
-		const loadButton = screen.getByRole("button", { name: /load articles/i });
-		const user = userEvent.setup();
-		await user.click(loadButton);
-
-		await waitFor(() => {
-			expect(screen.getByText("Showing 3 of 3 articles")).toBeInTheDocument();
 		});
 	});
 
 	it("should update article count when filtering", async () => {
-		render(<SpaceNewsPage />);
+		renderSpaceNewsPage();
 
-		// Wait for initial load
+		await waitForLoadButton();
+
+		spaceNewsApi.fetchSpaceNewsArticles.mockResolvedValue(
+			mockSpaceArticlesData,
+		);
+
+		await clickLoadButton();
+
 		await waitFor(() => {
 			expect(
-				screen.getByRole("button", { name: /load articles/i }),
+				screen.getByText(THREE_OF_THREE_ARTICLES_TEXT),
 			).toBeInTheDocument();
 		});
 
-		// Set up mock with articles
-		spaceNewsApi.fetchSpaceNewsArticles.mockResolvedValue(mockArticles);
+		const searchInput = screen.getByLabelText(SEARCH_INPUT_LABEL);
+		await user.type(searchInput, NASA_SEARCH_QUERY);
 
-		const loadButton = screen.getByRole("button", { name: /load articles/i });
-		const user = userEvent.setup();
-		await user.click(loadButton);
-
-		await waitFor(() => {
-			expect(screen.getByText("Showing 3 of 3 articles")).toBeInTheDocument();
-		});
-
-		const searchInput = screen.getByLabelText(/search/i);
-		await user.type(searchInput, "NASA");
-
-		expect(screen.getByText("Showing 1 of 3 articles")).toBeInTheDocument();
+		expect(screen.getByText(ONE_OF_THREE_ARTICLES_TEXT)).toBeInTheDocument();
 	});
 
 	it("should perform case-insensitive search", async () => {
-		render(<SpaceNewsPage />);
+		renderSpaceNewsPage();
 
-		// Wait for initial load
+		await waitForLoadButton();
+
+		spaceNewsApi.fetchSpaceNewsArticles.mockResolvedValue(
+			mockSpaceArticlesData,
+		);
+
+		await clickLoadButton();
+
 		await waitFor(() => {
 			expect(
-				screen.getByRole("button", { name: /load articles/i }),
+				screen.getByText(mockSpaceArticlesData[0].title),
 			).toBeInTheDocument();
 		});
 
-		// Set up mock with articles
-		spaceNewsApi.fetchSpaceNewsArticles.mockResolvedValue(mockArticles);
+		const searchInput = screen.getByLabelText(SEARCH_INPUT_LABEL);
+		await user.type(searchInput, SPACEX_LOWERCASE_QUERY);
 
-		const loadButton = screen.getByRole("button", { name: /load articles/i });
-		const user = userEvent.setup();
-		await user.click(loadButton);
-
-		await waitFor(() => {
-			expect(screen.getByText("SpaceX Launches Starship")).toBeInTheDocument();
-		});
-
-		const searchInput = screen.getByLabelText(/search/i);
-		await user.type(searchInput, "spacex");
-
-		expect(screen.getByText("SpaceX Launches Starship")).toBeInTheDocument();
 		expect(
-			screen.getByText("SpaceX Dragon Returns to Earth"),
+			screen.getByText(mockSpaceArticlesData[0].title),
+		).toBeInTheDocument();
+		expect(
+			screen.getByText(mockSpaceArticlesData[2].title),
 		).toBeInTheDocument();
 	});
 });

@@ -5,33 +5,38 @@ import * as spaceNewsApi from "./services/spaceNewsApi";
 
 vi.mock("./services/spaceNewsApi");
 
+const PAGE_TITLE_TEXT = "Spaceflight News Dashboard";
+const LOAD_BUTTON_LABEL = /load articles/i;
+
 describe("App", () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
-		// Mock to return empty array by default to prevent auto-loading in tests
 		spaceNewsApi.fetchSpaceNewsArticles.mockResolvedValue([]);
 	});
 
-	it("should render the SpaceNewsPage component", async () => {
-		render(<App />);
+	const renderApp = () => {
+		return render(<App />);
+	};
 
-		// Wait for effect to settle to avoid act warnings
+	const waitForLoadButton = async () => {
 		await waitFor(() => {
 			expect(
-				screen.getByRole("button", { name: /load articles/i }),
+				screen.getByRole("button", { name: LOAD_BUTTON_LABEL }),
 			).toBeInTheDocument();
 		});
+	};
 
-		expect(screen.getByText("Spaceflight News Dashboard")).toBeInTheDocument();
+	it("should render the SpaceNewsPage component", async () => {
+		renderApp();
+
+		await waitForLoadButton();
+
+		expect(screen.getByText(PAGE_TITLE_TEXT)).toBeInTheDocument();
 	});
 
 	it("should render load articles button", async () => {
-		render(<App />);
+		renderApp();
 
-		// Wait for initial load to complete
-		await waitFor(() => {
-			const loadButton = screen.getByRole("button", { name: /load articles/i });
-			expect(loadButton).toBeInTheDocument();
-		});
+		await waitForLoadButton();
 	});
 });
