@@ -1,32 +1,42 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
-import { App } from './App'
-import * as spaceNewsApi from './services/spaceNewsApi'
+import { render, screen, waitFor } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { App } from "./App";
+import * as spaceNewsApi from "./services/spaceNewsApi";
 
-vi.mock('./services/spaceNewsApi')
+vi.mock("./services/spaceNewsApi");
 
-describe('App', () => {
-    beforeEach(() => {
-        vi.clearAllMocks()
-        // Mock to return empty array by default to prevent auto-loading in tests
-        spaceNewsApi.fetchSpaceNewsArticles.mockResolvedValue([])
-    })
+const PAGE_TITLE_TEXT = "Spaceflight News Dashboard";
+const LOAD_BUTTON_LABEL = /load articles/i;
 
-    it('should render the SpaceNewsPage component', () => {
-        render(<App />)
+describe("App", () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+		spaceNewsApi.fetchSpaceNewsArticles.mockResolvedValue([]);
+	});
 
-        expect(
-            screen.getByText('🚀 Spaceflight News Dashboard')
-        ).toBeInTheDocument()
-    })
+	const renderApp = () => {
+		return render(<App />);
+	};
 
-    it('should render load articles button', async () => {
-        render(<App />)
+	const waitForLoadButton = async () => {
+		await waitFor(() => {
+			expect(
+				screen.getByRole("button", { name: LOAD_BUTTON_LABEL }),
+			).toBeInTheDocument();
+		});
+	};
 
-        // Wait for initial load to complete
-        await waitFor(() => {
-            const loadButton = screen.getByRole('button', { name: /load articles/i })
-            expect(loadButton).toBeInTheDocument()
-        })
-    })
-})
+	it("should render the SpaceNewsPage component", async () => {
+		renderApp();
+
+		await waitForLoadButton();
+
+		expect(screen.getByText(PAGE_TITLE_TEXT)).toBeInTheDocument();
+	});
+
+	it("should render load articles button", async () => {
+		renderApp();
+
+		await waitForLoadButton();
+	});
+});
