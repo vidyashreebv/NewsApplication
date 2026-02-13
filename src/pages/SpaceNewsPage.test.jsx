@@ -56,6 +56,7 @@ describe("SpaceNewsPage", () => {
 		vi.clearAllMocks();
 		user = userEvent.setup();
 		spaceNewsApi.fetchSpaceNewsArticles.mockResolvedValue([]);
+		window.history.replaceState({}, "", "/");
 	});
 
 	const renderSpaceNewsPage = () => {
@@ -207,15 +208,21 @@ describe("SpaceNewsPage", () => {
 		const searchInput = screen.getByLabelText(SEARCH_INPUT_LABEL);
 		await user.type(searchInput, SPACEX_SEARCH_QUERY);
 
+		await waitFor(
+			() => {
+				expect(
+					screen.queryByText(mockSpaceArticlesData[1].title),
+				).not.toBeInTheDocument();
+			},
+			{ timeout: 500 },
+		);
+
 		expect(
 			screen.getByText(mockSpaceArticlesData[0].title),
 		).toBeInTheDocument();
 		expect(
 			screen.getByText(mockSpaceArticlesData[2].title),
 		).toBeInTheDocument();
-		expect(
-			screen.queryByText(mockSpaceArticlesData[1].title),
-		).not.toBeInTheDocument();
 	});
 
 	it("should show no results state when search has no matches", async () => {
@@ -238,7 +245,12 @@ describe("SpaceNewsPage", () => {
 		const searchInput = screen.getByLabelText(SEARCH_INPUT_LABEL);
 		await user.type(searchInput, PLUTO_SEARCH_QUERY);
 
-		expect(screen.getByText(NO_RESULTS_TITLE_TEXT)).toBeInTheDocument();
+		await waitFor(
+			() => {
+				expect(screen.getByText(NO_RESULTS_TITLE_TEXT)).toBeInTheDocument();
+			},
+			{ timeout: 500 },
+		);
 		expect(
 			screen.getByText(
 				`No articles match "${PLUTO_SEARCH_QUERY}". Try a different search term.`,
@@ -284,7 +296,14 @@ describe("SpaceNewsPage", () => {
 		const searchInput = screen.getByLabelText(SEARCH_INPUT_LABEL);
 		await user.type(searchInput, NASA_SEARCH_QUERY);
 
-		expect(screen.getByText(ONE_OF_THREE_ARTICLES_TEXT)).toBeInTheDocument();
+		await waitFor(
+			() => {
+				expect(
+					screen.getByText(ONE_OF_THREE_ARTICLES_TEXT),
+				).toBeInTheDocument();
+			},
+			{ timeout: 500 },
+		);
 	});
 
 	it("should perform case-insensitive search", async () => {
@@ -307,11 +326,16 @@ describe("SpaceNewsPage", () => {
 		const searchInput = screen.getByLabelText(SEARCH_INPUT_LABEL);
 		await user.type(searchInput, SPACEX_LOWERCASE_QUERY);
 
-		expect(
-			screen.getByText(mockSpaceArticlesData[0].title),
-		).toBeInTheDocument();
-		expect(
-			screen.getByText(mockSpaceArticlesData[2].title),
-		).toBeInTheDocument();
+		await waitFor(
+			() => {
+				expect(
+					screen.getByText(mockSpaceArticlesData[0].title),
+				).toBeInTheDocument();
+				expect(
+					screen.getByText(mockSpaceArticlesData[2].title),
+				).toBeInTheDocument();
+			},
+			{ timeout: 500 },
+		);
 	});
 });

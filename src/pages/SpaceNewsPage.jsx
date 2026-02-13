@@ -1,8 +1,9 @@
 import clsx from "clsx";
 import PropTypes from "prop-types";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ArticleCard } from "../components/ArticleCard";
 import { SearchInput } from "../components/SearchInput";
+import { useDebounce } from "../hooks/useDebounce";
 import { useFetch } from "../hooks/useFetch";
 import { fetchSpaceNewsArticles } from "../services/spaceNewsApi";
 
@@ -73,7 +74,18 @@ NoResultsState.propTypes = {
 };
 
 export const SpaceNewsPage = () => {
-	const [searchQuery, setSearchQuery] = useState("");
+	const [searchParams, setSearchParams] = useState(() => {
+		if (typeof window !== "undefined") {
+			return new URLSearchParams(window.location.search);
+		}
+		return new URLSearchParams();
+	});
+
+	const [searchQuery, setSearchQuery] = useState(
+		() => searchParams.get("q") || "",
+	);
+
+	const debouncedSearchQuery = useDebounce(searchQuery, 300);
 
 	const {
 		data: articles,
@@ -82,13 +94,29 @@ export const SpaceNewsPage = () => {
 		refetch,
 	} = useFetch(fetchSpaceNewsArticles);
 
+	useEffect(() => {
+		if (typeof window === "undefined") return;
+
+		const newParams = new URLSearchParams();
+		if (debouncedSearchQuery) {
+			newParams.set("q", debouncedSearchQuery);
+		}
+
+		const newUrl = debouncedSearchQuery
+			? `?${newParams.toString()}`
+			: window.location.pathname;
+
+		window.history.replaceState({}, "", newUrl);
+		setSearchParams(newParams);
+	}, [debouncedSearchQuery]);
+
 	const handleOnChangeSearchQuery = (newSearchQuery) => {
 		setSearchQuery(newSearchQuery);
 	};
 
 	const filteredArticles =
 		articles?.filter((article) =>
-			article.title.toLowerCase().includes(searchQuery.toLowerCase()),
+			article.title.toLowerCase().includes(debouncedSearchQuery.toLowerCase()),
 		) || [];
 
 	const shouldShowEmptyState =
@@ -123,7 +151,7 @@ export const SpaceNewsPage = () => {
 						{isLoading ? "Loading..." : "Load Articles"}
 					</button>
 
-					{articles && articles.length > 0 && (
+					{articles && articles.length > 0 && !error && (
 						<SearchInput
 							value={searchQuery}
 							onChange={handleOnChangeSearchQuery}
@@ -143,7 +171,9 @@ export const SpaceNewsPage = () => {
 				{shouldShowEmptyState && <EmptyState />}
 
 				{/* No Results State */}
-				{shouldShowNoResults && <NoResultsState searchQuery={searchQuery} />}
+				{shouldShowNoResults && (
+					<NoResultsState searchQuery={debouncedSearchQuery} />
+				)}
 
 				{/* Articles Grid */}
 				{!isLoading && filteredArticles.length > 0 && (

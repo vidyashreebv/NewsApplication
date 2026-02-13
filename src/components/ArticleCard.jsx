@@ -43,7 +43,7 @@ const ExternalLinkIcon = () => (
 
 export const ArticleCard = ({ title, source, url }) => {
 	return (
-		<article className={cardClassName}>
+		<article className={cardClassName} aria-label={`Article: ${title}`}>
 			<h2 className={titleClassName}>{title}</h2>
 
 			<p className={sourceTextClassName}>

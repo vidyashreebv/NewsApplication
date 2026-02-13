@@ -8,9 +8,11 @@ import { useCallback, useEffect, useRef, useState } from "react";
  * @returns {Object} - Object containing data, loading state, error, and refetch function
  */
 export const useFetch = (fetchFunction) => {
-	const [data, setData] = useState(null);
-	const [isLoading, setIsLoading] = useState(false);
-	const [error, setError] = useState(null);
+	const [state, setState] = useState({
+		data: null,
+		isLoading: false,
+		error: null,
+	});
 	const activeControllerRef = useRef(null);
 
 	const runFetch = useCallback(async () => {
@@ -19,18 +21,24 @@ export const useFetch = (fetchFunction) => {
 		const abortController = new AbortController();
 		activeControllerRef.current = abortController;
 
-		setIsLoading(true);
-		setError(null);
+		setState((prev) => ({ ...prev, isLoading: true, error: null }));
 
 		try {
 			const result = await fetchFunction(abortController.signal);
-			if (!abortController.signal.aborted) setData(result);
+			if (!abortController.signal.aborted) {
+				setState((prev) => ({ ...prev, data: result }));
+			}
 		} catch (err) {
 			if (!abortController.signal.aborted && err?.name !== "AbortError") {
-				setError(err?.message || "An error occurred while fetching data");
+				setState((prev) => ({
+					...prev,
+					error: err?.message || "An error occurred while fetching data",
+				}));
 			}
 		} finally {
-			if (!abortController.signal.aborted) setIsLoading(false);
+			if (!abortController.signal.aborted) {
+				setState((prev) => ({ ...prev, isLoading: false }));
+			}
 		}
 	}, [fetchFunction]);
 
@@ -39,5 +47,10 @@ export const useFetch = (fetchFunction) => {
 		return () => activeControllerRef.current?.abort();
 	}, [runFetch]);
 
-	return { data, isLoading, error, refetch: runFetch };
+	return {
+		data: state.data,
+		isLoading: state.isLoading,
+		error: state.error,
+		refetch: runFetch,
+	};
 };
